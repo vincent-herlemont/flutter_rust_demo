@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Web Page</title>
+</head>
+<body>
+
+    <h2 id="ajaxMessage">Awaiting AJAX message...</h2>
+    <h2 id="websocketMessage">Awaiting WebSocket message...</h2>
+
+    <script>
+        window.onload = function() {
+            // AJAX request
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/your-api-url', true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState == 4 && xhr.status == 200) {
+                    document.getElementById('ajaxMessage').textContent = xhr.responseText;
+                } else if (xhr.readyState == 4) {
+                    document.getElementById('ajaxMessage').textContent = 'Error with the AJAX request';
+                }
+            };
+            xhr.send();
+
+            // WebSocket
+            var ws = new WebSocket('wss://your-websocket-url');
+            ws.onopen = function() {
+                ws.send('Connection established');
+            };
+            ws.onmessage = function(event) {
+                document.getElementById('websocketMessage').textContent = event.data;
+            };
+            ws.onerror = function() {
+                document.getElementById('websocketMessage').textContent = 'Error with the WebSocket connection';
+            };
+        };
+    </script>
+
+</body>
+</html>

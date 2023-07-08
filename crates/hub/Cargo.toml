@@ -1,0 +1,21 @@
+[package]
+name = "hub"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+name = "hub"
+path = "src/lib.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+axum = { version = "0.6.18", features = ["default", "ws", "headers"] }
+headers = "0.3.8"
+tracing = { path = "../core/tracing" }
+
+# Error handling
+eyre = { version = "0.6" }
+color-eyre = { version = "0.6" }
+
+[dev-dependencies]
+shortcut_assert_fs = "0.1.0"
