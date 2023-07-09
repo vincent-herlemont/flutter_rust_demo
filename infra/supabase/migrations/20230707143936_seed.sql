@@ -16,21 +16,20 @@ CREATE POLICY "View all profiles" ON public.profiles
 CREATE POLICY "Update own profile" ON public.profiles
   FOR UPDATE USING (auth.uid() = user_id);
 
-CREATE OR REPLACE FUNCTION public.set_delete_time_on_user_delete()
+CREATE OR REPLACE FUNCTION auth.set_delete_time_on_user_delete()
 RETURNS TRIGGER AS $$
 BEGIN
     UPDATE public.profiles
     SET deleted_at = NOW()
-    WHERE id = OLD.id;
-
-    RETURN NULL;
+    WHERE profiles.user_id = OLD.id;
+    RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER delete_user_trigger
-AFTER DELETE ON auth.users
+BEFORE DELETE ON auth.users
 FOR EACH ROW
-EXECUTE PROCEDURE public.set_delete_time_on_user_delete();
+EXECUTE PROCEDURE auth.set_delete_time_on_user_delete();
 
 CREATE OR REPLACE FUNCTION public.create_profile_on_user_create()
 RETURNS TRIGGER AS $$

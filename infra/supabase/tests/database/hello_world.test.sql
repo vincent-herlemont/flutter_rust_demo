@@ -1,5 +1,5 @@
 begin;
-select plan(11); -- only one statement to run
+select plan(13); -- only one statement to run
 
 SELECT has_table('profiles' );
 SELECT col_is_pk('profiles', 'id' );
@@ -35,7 +35,6 @@ SELECT results_eq('profiles_userids'::refcursor,'auth_userids'::refcursor);
 CLOSE profiles_userids;
 CLOSE auth_userids;
 
-
 DELETE FROM auth.users WHERE email = 'test@example.com';
 
 DECLARE count_profiles_by_id CURSOR FOR SELECT count(id) FROM public.profiles;
@@ -50,6 +49,22 @@ DECLARE auth_userids CURSOR FOR SELECT id FROM auth.users ORDER BY id;
 SELECT results_eq('profiles_userids'::refcursor,'auth_userids'::refcursor);
 CLOSE profiles_userids;
 CLOSE auth_userids;
+
+DECLARE profile_deleted_date CURSOR FOR
+    SELECT users.email
+    FROM auth.users
+    INNER JOIN public.profiles ON auth.users.id = profiles.user_id
+    ORDER BY auth.users.email;
+SELECT results_eq('profile_deleted_date'::refcursor,ARRAY ['demo@example.com'::varchar(255)]);
+CLOSE profile_deleted_date;
+
+
+DECLARE count_profiles_deleted_date CURSOR FOR
+    SELECT count(id)
+    FROM public.profiles
+    WHERE deleted_at IS NULL;
+SELECT results_eq('count_profiles_deleted_date'::refcursor,ARRAY [1::bigint]);
+CLOSE count_profiles_deleted_date;
 
 select * from finish();
 rollback;
