@@ -12,8 +12,8 @@ Code:
     - Sandalone
       - [ ] Create rust hub websockets part <-> Client
       - [ ] Create rust hub http part <-> Supabase
-      - [ ] Create rust node websockets part <-> hub
-      - [ ] Create rust node http part <-> Supabase
+      - [ ] Create rust agent websockets part <-> hub
+      - [ ] Create rust agent http part <-> Supabase
       - [ ] Create docker compose 
          - [x] Supabase [self-hosting/docker](https://supabase.com/docs/guides/self-hosting/docker)
          - [ ] Choose a proxy to reproduce the fly.io behaviour with fly-replay headers

@@ -1,5 +1,5 @@
 begin;
-select plan(15); -- only one statement to run
+select plan(18); -- only one statement to run
 
 SELECT has_table('profiles' );
 SELECT col_is_pk('profiles', 'id' );
@@ -9,7 +9,8 @@ SELECT policies_are(
   'profiles',
   ARRAY [
     'View all profiles',
-    'Update own profile'
+    'Update own profile',
+    'Insert profile allow for supabase_auth_admin'
   ]
 );
 
@@ -42,50 +43,61 @@ CLOSE auth_userids;
 CALL auth.login_as_user('demo@example.com');
 -- test to update own profile
 SELECT lives_ok( $$ UPDATE public.profiles SET first_name = 'Demo' WHERE user_id = auth.uid(); $$);
--- test to read (updated) profile
+-- test to read own profile
 SELECT results_eq(
                $$ SELECT first_name FROM public.profiles WHERE user_id = auth.uid() $$,
                ARRAY [ 'Demo'::text ]
     );
 CALL auth.logout();
 
--- execute format('set toto= %L', 'toto');
--- SELECT is_empty(
 
-CALL auth.save_uuid('demo@example.com');
-SELECT is_empty($$ SELECT * FROM public.profiles WHERE user_id = auth.get_saved_uuid() $$);
--- SELECT is_empty($$ SELECT auth.get_saved_uuid() $$);
+CALL auth.cache_set_uuid('demo@example.com');
+CALL auth.login_as_user('test@example.com');
+-- -- test to read other profile
+SELECT results_eq(
+               $$ SELECT first_name FROM public.profiles WHERE user_id = auth.cache_get_uuid() $$,
+               ARRAY [ 'Demo'::text ]
+    );
+-- test to updated other profile
+SELECT lives_ok( $$ UPDATE public.profiles SET first_name = 'Test' WHERE user_id = auth.cache_get_uuid() $$);
+SELECT results_eq(
+               $$ SELECT first_name FROM public.profiles WHERE user_id = auth.cache_get_uuid() $$,
+               ARRAY [ 'Demo'::text ]
+    );
+CALL auth.logout();
 
--- DELETE FROM auth.users WHERE email = 'test@example.com';
---
--- DECLARE count_profiles_by_id CURSOR FOR SELECT count(id) FROM public.profiles;
--- DECLARE count_users_by_id CURSOR FOR SELECT count(id) FROM auth.users;
--- SELECT results_eq('count_profiles_by_id'::refcursor,ARRAY [2::bigint]);
--- SELECT results_eq('count_users_by_id'::refcursor,ARRAY [1::bigint]);
--- CLOSE count_profiles_by_id;
--- CLOSE count_users_by_id;
---
--- DECLARE profiles_userids CURSOR FOR SELECT user_id FROM public.profiles WHERE user_id IS NOT NULL ORDER BY user_id;
--- DECLARE auth_userids CURSOR FOR SELECT id FROM auth.users ORDER BY id;
--- SELECT results_eq('profiles_userids'::refcursor,'auth_userids'::refcursor);
--- CLOSE profiles_userids;
--- CLOSE auth_userids;
---
--- DECLARE profile_deleted_date CURSOR FOR
---     SELECT users.email
---     FROM auth.users
---     INNER JOIN public.profiles ON auth.users.id = profiles.user_id
---     ORDER BY auth.users.email;
--- SELECT results_eq('profile_deleted_date'::refcursor,ARRAY ['demo@example.com'::varchar(255)]);
--- CLOSE profile_deleted_date;
---
---
--- DECLARE count_profiles_deleted_date CURSOR FOR
---     SELECT count(id)
---     FROM public.profiles
---     WHERE deleted_at IS NULL;
--- SELECT results_eq('count_profiles_deleted_date'::refcursor,ARRAY [1::bigint]);
--- CLOSE count_profiles_deleted_date;
+-- remove an user
+DELETE FROM auth.users WHERE email = 'test@example.com';
+
+-- check that the profile is not deleted
+DECLARE count_profiles_by_id CURSOR FOR SELECT count(id) FROM public.profiles;
+DECLARE count_users_by_id CURSOR FOR SELECT count(id) FROM auth.users;
+SELECT results_eq('count_profiles_by_id'::refcursor,ARRAY [2::bigint]);
+SELECT results_eq('count_users_by_id'::refcursor,ARRAY [1::bigint]);
+CLOSE count_profiles_by_id;
+CLOSE count_users_by_id;
+
+DECLARE profiles_userids CURSOR FOR SELECT user_id FROM public.profiles WHERE user_id IS NOT NULL ORDER BY user_id;
+DECLARE auth_userids CURSOR FOR SELECT id FROM auth.users ORDER BY id;
+SELECT results_eq('profiles_userids'::refcursor,'auth_userids'::refcursor);
+CLOSE profiles_userids;
+CLOSE auth_userids;
+
+DECLARE profile_deleted_date CURSOR FOR
+    SELECT users.email
+    FROM auth.users
+    INNER JOIN public.profiles ON auth.users.id = profiles.user_id
+    ORDER BY auth.users.email;
+SELECT results_eq('profile_deleted_date'::refcursor,ARRAY ['demo@example.com'::varchar(255)]);
+CLOSE profile_deleted_date;
+
+-- check if the deleted date is set on the profile
+DECLARE count_profiles_deleted_date CURSOR FOR
+    SELECT count(id)
+    FROM public.profiles
+    WHERE deleted_at IS NULL;
+SELECT results_eq('count_profiles_deleted_date'::refcursor,ARRAY [1::bigint]);
+CLOSE count_profiles_deleted_date;
 
 select * from finish();
 rollback;

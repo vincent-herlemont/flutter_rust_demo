@@ -1,0 +1,11 @@
+[package]
+name = "config"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+dotenvy = "0.15.7"
+
+[features]
+default = []
+local_supabase = []
