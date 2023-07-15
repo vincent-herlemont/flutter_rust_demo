@@ -1,5 +1,5 @@
 begin;
-select plan(2); -- only one statement to run
+select plan(1); -- only one statement to run
 
 SELECT has_table('agents' );
 

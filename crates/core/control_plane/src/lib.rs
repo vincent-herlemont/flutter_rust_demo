@@ -1,7 +1,8 @@
 use crate::client::Client;
 
-mod alive;
 mod client;
+mod postgrest_error;
+mod resource;
 
 pub struct ControlPlane<T: Client> {
     client: T,

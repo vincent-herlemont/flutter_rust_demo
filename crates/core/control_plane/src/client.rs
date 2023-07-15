@@ -1,12 +1,20 @@
 use config::Config;
+use serde::{Deserialize, Serialize};
 
 pub trait Client {}
 
-pub struct SupbaseClient {
+pub struct SupabaseClient {
     pub config: Config,
 }
 
-impl SupbaseClient {
+#[derive(Debug, Serialize, Deserialize)]
+struct PostgrestErrorResBody {
+    code: String,
+    details: String,
+    message: String,
+}
+
+impl SupabaseClient {
     pub fn new(config: &Config) -> Self {
         Self {
             config: config.clone(),
@@ -22,6 +30,8 @@ impl SupbaseClient {
             .from(table)
             .auth(&self.config.get_supabase_service_role_key().unwrap())
     }
+
+    // pub fn run<T>(c: postgrest::Builder) -> T {}
 }
 
 #[cfg(test)]
@@ -31,7 +41,7 @@ mod tests {
     #[cfg(feature = "local_supabase")]
     async fn list_runner() {
         let config = config::Config::new("");
-        let client = super::SupbaseClient::new(&config);
+        let client = super::SupabaseClient::new(&config);
         let res = client.from("runners").select("*").execute().await;
         println!("{:?}", res);
     }

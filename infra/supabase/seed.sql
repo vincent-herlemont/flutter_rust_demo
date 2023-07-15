@@ -192,3 +192,46 @@ CREATE TABLE public.file_transfers (
     PRIMARY KEY (id)
 );
 ALTER TABLE public.file_transfers ENABLE ROW LEVEL SECURITY;
+
+-- Deployments
+CREATE TYPE version_deployment_status AS ENUM ('scheduled', 'running', 'failed', 'deployed', 'finished');
+
+
+CREATE TABLE public.version_deployments (
+    id serial PRIMARY KEY,
+    version varchar(20) UNIQUE CHECK (version ~ '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'),
+    created_at TIMESTAMP DEFAULT NOW(),
+    status version_deployment_status DEFAULT 'scheduled',
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+ALTER TABLE public.version_deployments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "View all version_deployments" ON public.version_deployments
+  FOR SELECT USING (true);
+
+CREATE OR REPLACE FUNCTION public.check_single_completed() RETURNS TRIGGER AS $$
+BEGIN
+   IF NEW.status = 'deployed' THEN
+      IF EXISTS (SELECT 1 FROM public.version_deployments WHERE status = 'deployed') THEN
+         RAISE EXCEPTION 'Only one version can be set to completed.';
+      END IF;
+   END IF;
+   RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_single_completed_trigger
+BEFORE UPDATE ON public.version_deployments
+FOR EACH ROW EXECUTE PROCEDURE public.check_single_completed();
+
+CREATE OR REPLACE FUNCTION check_scheduled_on_insert() RETURNS TRIGGER AS $$
+BEGIN
+   IF NEW.status <> 'scheduled' THEN
+      RAISE EXCEPTION 'Only "scheduled" status is authorized when inserting.';
+   END IF;
+   RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER enforce_scheduled_on_insert
+BEFORE INSERT ON version_deployments
+FOR EACH ROW EXECUTE PROCEDURE check_scheduled_on_insert();
