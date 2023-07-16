@@ -82,7 +82,7 @@ CREATE TABLE public.profiles (
   user_id UUID DEFAULT NULL UNIQUE REFERENCES auth.users ON DELETE SET NULL,
   first_name TEXT DEFAULT NULL,
   last_name TEXT DEFAULT NULL,
-  deleted_at TIMESTAMP DEFAULT NULL,
+  deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
   PRIMARY KEY (id)
 );
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -136,8 +136,8 @@ CREATE TABLE public.runners (
   status runner_status DEFAULT 'new',
   total_available_memory_mo INTEGER DEFAULT 0,
   total_available_disk_mo INTEGER DEFAULT 0,
-  created_at TIMESTAMP DEFAULT NOW(),
-  deleted_at TIMESTAMP DEFAULT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
   PRIMARY KEY (id)
 );
 ALTER TABLE public.runners ENABLE ROW LEVEL SECURITY;
@@ -153,8 +153,8 @@ CREATE TABLE public.hubs (
     status hub_status DEFAULT 'unavailable',
     memory_consumption_mo INTEGER DEFAULT 0,
     disk_consumption_mo INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT NOW(),
-    deleted_at TIMESTAMP DEFAULT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     PRIMARY KEY (id)
 );
 ALTER TABLE public.hubs ENABLE ROW LEVEL SECURITY;
@@ -199,10 +199,10 @@ CREATE TYPE version_deployment_status AS ENUM ('scheduled', 'running', 'failed',
 
 CREATE TABLE public.version_deployments (
     id serial PRIMARY KEY,
-    version varchar(20) UNIQUE CHECK (version ~ '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'),
-    created_at TIMESTAMP DEFAULT NOW(),
+    version varchar(20) CHECK (version ~ '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     status version_deployment_status DEFAULT 'scheduled',
-    updated_at TIMESTAMP DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 ALTER TABLE public.version_deployments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "View all version_deployments" ON public.version_deployments
@@ -235,3 +235,31 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER enforce_scheduled_on_insert
 BEFORE INSERT ON version_deployments
 FOR EACH ROW EXECUTE PROCEDURE check_scheduled_on_insert();
+
+CREATE OR REPLACE FUNCTION check_version_status() RETURNS TRIGGER AS $$
+DECLARE
+    count INTEGER;
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        SELECT COUNT(*)
+        INTO count
+        FROM public.version_deployments
+        WHERE version = NEW.version AND status != 'failed';
+    ELSIF TG_OP = 'UPDATE' THEN
+        SELECT COUNT(*)
+        INTO count
+        FROM public.version_deployments
+        WHERE version = NEW.version AND status != 'failed' AND id != NEW.id;
+    END IF;
+
+    IF count > 0 THEN
+        RAISE EXCEPTION 'Version % is already in non-failed status', NEW.version;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER version_status_check_trigger
+BEFORE INSERT OR UPDATE ON public.version_deployments
+FOR EACH ROW EXECUTE PROCEDURE check_version_status();

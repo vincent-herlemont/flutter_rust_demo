@@ -1,10 +1,14 @@
 begin;
-select plan(11); -- only one statement to run
+select plan(12); -- only one statement to run
 
 SELECT has_table('version_deployments' );
 
 -- Check admin can insert
 SELECT lives_ok($$ INSERT INTO public.version_deployments (version) VALUES ('0.0.1'); $$);
+
+-- Check only 1 version can be scheduled,running,deployed,finished at a time
+SELECT throws_like($$ INSERT INTO public.version_deployments (version) VALUES ('0.0.1'); $$,
+    'Version 0.0.1 is already in non-failed status');
 
 -- Check semantic versioning is enforced
 SELECT throws_like($$ INSERT INTO public.version_deployments (version) VALUES ('toto'); $$,

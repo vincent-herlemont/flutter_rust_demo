@@ -1,0 +1,14 @@
+[package]
+name = "deploy"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.3.12", features = ["derive"] }
+config = { path = "../../core/config", default-features = false }
+control_plane = { path = "../../core/control_plane" }
+tokio = "1.29.1"
+
+[features]
+default = []
+local_supabase = [ "config/local_supabase" ]

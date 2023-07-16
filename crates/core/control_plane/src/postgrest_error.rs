@@ -6,8 +6,8 @@ use thiserror::Error;
 #[derive(Error, Debug, Serialize, Deserialize)]
 struct PostgrestErrorResBody {
     code: String,
-    details: String,
-    message: String,
+    details: Option<String>,
+    message: Option<String>,
 }
 
 impl Display for PostgrestErrorResBody {
@@ -15,7 +15,9 @@ impl Display for PostgrestErrorResBody {
         write!(
             f,
             "(code: {}, details: {}, message: {})",
-            self.code, self.details, self.message
+            self.code,
+            self.details.clone().unwrap_or_default(),
+            self.message.clone().unwrap_or_default()
         )
     }
 }
@@ -23,11 +25,27 @@ impl Display for PostgrestErrorResBody {
 pub fn parse<'a, T: Deserialize<'a>>(data: &'a str) -> Result<T> {
     // 1. Check response
     match serde_json::from_str::<T>(data) {
-        Ok(res) => Ok(res),
-        Err(_) => match serde_json::from_str::<PostgrestErrorResBody>(data) {
+        Ok(out) => Ok(out),
+        Err(err) => match serde_json::from_str::<PostgrestErrorResBody>(data) {
             Ok(error_res) => Err(error_res.into()),
-            Err(_) => Err(eyre::eyre!("Unknown error. Data from postgrest {}", data)),
+            Err(_) => Err(eyre::eyre!(
+                "unknown error: data from postgrest \"{}\", msg: \"{}\"",
+                data,
+                err
+            )),
         },
+    }
+}
+
+pub fn parse_once<'a, T: Deserialize<'a>>(data: &'a str) -> Result<Option<T>> {
+    let mut out: Vec<T> = parse(data)?;
+    Ok(out.pop())
+}
+
+pub fn parse_require_once<'a, T: Deserialize<'a>>(data: &'a str) -> Result<T> {
+    match parse_once(data)? {
+        Some(out) => Ok(out),
+        None => Err(eyre::eyre!("no data found: {}", data)),
     }
 }
 
@@ -50,10 +68,13 @@ mod tests {
             .downcast::<PostgrestErrorResBody>()
             .unwrap();
         assert_eq!(res.code, "23505");
-        assert_eq!(res.details, "Key (version)=(0.0.2) already exists.");
+        assert_eq!(
+            res.details,
+            Some("Key (version)=(0.0.2) already exists.".to_string())
+        );
         assert_eq!(
             res.message,
-            "duplicate key value violates unique constraint \"version_deployments_version_key\""
+            Some("duplicate key value violates unique constraint \"version_deployments_version_key\"".to_string())
         );
     }
 }
