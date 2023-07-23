@@ -8,14 +8,23 @@ name = "hub"
 path = "src/lib.rs"
 
 [dependencies]
+config = { path = "../core/config", default-features = false }
+
+# Communication
 tokio = { version = "1", features = ["full"] }
 axum = { version = "0.6.18", features = ["default", "ws", "headers"] }
-headers = "0.3.8"
-tracing = { path = "../core/tracing" }
+headers = "0.3.8" # TODO: is this needed?
 
-# Error handling
-eyre = { version = "0.6" }
-color-eyre = { version = "0.6" }
+# Monitoring / Error Handling
+tracing = { path = "../core/tracing" }
+eyre = { workspace = true  }
+color-eyre = { workspace = true }
 
 [dev-dependencies]
-shortcut_assert_fs = "0.1.0"
+nix = { workspace = true }
+hyper = { workspace = true, features = ["client", "http1", "http2", "runtime"] }
+serial_test = { workspace = true }
+
+[features]
+default = []
+local_supabase = [ "config/local_supabase" ]

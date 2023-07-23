@@ -1,23 +1,25 @@
 #![cfg(unix)]
+use config::Config;
 use hyper::{Client, Uri};
 use nix::sys::signal::{kill, Signal};
 use nix::unistd::Pid;
-use serial_test::serial;
+use serial_test::file_serial;
 use std::process;
 use std::thread;
 use tokio::time::{sleep, Duration};
 
 #[tokio::test]
-#[serial]
+#[file_serial]
+#[cfg(feature = "local_supabase")]
 async fn test_hello_word() {
     std::env::set_var("RUST_LOG", "info");
     let port: u16 = 3033;
 
     // spawn the server in a new thread
     let handle = tokio::spawn(async move {
-        let mut config = hub::Config::new().unwrap();
-        config.set_port(port);
-        hub::start(&config).await.unwrap()
+        let mut config = Config::new(".env.test");
+        config.set_service_port(port);
+        hub::start(config).await.unwrap()
     });
 
     // let server get up and running
@@ -44,16 +46,17 @@ async fn test_hello_word() {
 }
 
 #[test]
-#[serial]
+#[file_serial]
+#[cfg(feature = "local_supabase")]
 fn test_graceful_shutdown() {
     std::env::set_var("RUST_LOG", "info");
 
     // spawn the server in a new thread
     let handle = thread::spawn(|| {
-        let mut config = hub::Config::new().unwrap();
-        config.set_port(3032);
+        let mut config = Config::new(".env.test");
+        config.set_service_port(3032);
         let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async { hub::start(&config).await }).unwrap()
+        rt.block_on(async { hub::start(config).await }).unwrap()
     });
 
     // let server get up and running

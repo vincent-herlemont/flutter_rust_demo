@@ -1,0 +1,24 @@
+version: '3.7'
+
+services:
+  hub:
+    build:
+      context: ../../crates
+      args:
+        - CRATE_NAME=hub
+        - CARGO_PROFILE=${CARGO_PROFILE}
+    environment:
+      - SERVICE_PORT=3001
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - MONITORING_LOKI_SCHEME=${MONITORING_LOKI_SCHEME}
+      - MONITORING_LOKI_HOST_PORT=${MONITORING_LOKI_HOST_PORT}
+    ports:
+      - "3001:3001"
+    networks:
+      - monitoring_local
+
+networks:
+  monitoring_local:
+    external: true
+  supabase_network_infra:
+    external: true

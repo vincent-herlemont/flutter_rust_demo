@@ -1,0 +1,32 @@
+[package]
+name = "hub_client"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+name = "hub_client"
+path = "src/lib.rs"
+
+[dependencies]
+tokio = { workspace = true }
+futures-util = { workspace = true }
+futures-channel = { workspace = true }
+axum = { workspace = true }
+config = { path = "../core/config", default-features = false }
+
+# Communication
+tokio-tungstenite = { workspace = true }
+
+# tracing/erros
+eyre = { workspace = true  }
+tracing = { path = "../core/tracing" }
+serial_test = { workspace = true }
+
+
+[dev-dependencies]
+nix = { workspace = true }
+serial_test = { workspace = true }
+
+[features]
+default = []
+local_supabase = [ "config/local_supabase" ]

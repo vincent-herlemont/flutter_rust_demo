@@ -36,8 +36,10 @@ impl SupabaseClient {
 
 #[cfg(test)]
 mod tests {
+    use serial_test::file_parallel;
 
     #[tokio::test]
+    #[file_parallel]
     #[cfg(feature = "local_supabase")]
     async fn list_runner() {
         let config = config::Config::new("");

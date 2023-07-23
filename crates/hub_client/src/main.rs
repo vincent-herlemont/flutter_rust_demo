@@ -1,5 +1,5 @@
 use config::Config;
-use hub::start;
+use hub_client::start;
 
 #[tokio::main]
 pub async fn main() {

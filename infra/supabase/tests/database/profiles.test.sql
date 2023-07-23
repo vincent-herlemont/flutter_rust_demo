@@ -21,14 +21,14 @@ ON CONFLICT (id) DO NOTHING;
 
 SELECT results_eq(
                $$ SELECT email as text FROM auth.users ORDER BY email DESC $$,
-               ARRAY [ 'test@example.com'::varchar(255), 'demo@example.com'::varchar(255) ]
+               ARRAY [ 'test@test.test', 'test@example.com'::varchar(255), 'demo@example.com'::varchar(255) ]
            );
 
 -- count profiles and users
 DECLARE count_profiles_by_id CURSOR FOR SELECT count(id) FROM public.profiles;
 DECLARE count_users_by_id CURSOR FOR SELECT count(id) FROM auth.users;
-SELECT results_eq('count_profiles_by_id'::refcursor,ARRAY [2::bigint]);
-SELECT results_eq('count_users_by_id'::refcursor,ARRAY [2::bigint]);
+SELECT results_eq('count_profiles_by_id'::refcursor,ARRAY [3::bigint]);
+SELECT results_eq('count_users_by_id'::refcursor,ARRAY [3::bigint]);
 CLOSE count_profiles_by_id;
 CLOSE count_users_by_id;
 
@@ -72,8 +72,8 @@ DELETE FROM auth.users WHERE email = 'test@example.com';
 -- check that the profile is not deleted
 DECLARE count_profiles_by_id CURSOR FOR SELECT count(id) FROM public.profiles;
 DECLARE count_users_by_id CURSOR FOR SELECT count(id) FROM auth.users;
-SELECT results_eq('count_profiles_by_id'::refcursor,ARRAY [2::bigint]);
-SELECT results_eq('count_users_by_id'::refcursor,ARRAY [1::bigint]);
+SELECT results_eq('count_profiles_by_id'::refcursor,ARRAY [3::bigint]);
+SELECT results_eq('count_users_by_id'::refcursor,ARRAY [2::bigint]);
 CLOSE count_profiles_by_id;
 CLOSE count_users_by_id;
 
@@ -88,7 +88,7 @@ DECLARE profile_deleted_date CURSOR FOR
     FROM auth.users
     INNER JOIN public.profiles ON auth.users.id = profiles.user_id
     ORDER BY auth.users.email;
-SELECT results_eq('profile_deleted_date'::refcursor,ARRAY ['demo@example.com'::varchar(255)]);
+SELECT results_eq('profile_deleted_date'::refcursor,ARRAY ['demo@example.com'::varchar(255), 'test@test.test'::varchar(255)]);
 CLOSE profile_deleted_date;
 
 -- check if the deleted date is set on the profile
@@ -96,7 +96,7 @@ DECLARE count_profiles_deleted_date CURSOR FOR
     SELECT count(id)
     FROM public.profiles
     WHERE deleted_at IS NULL;
-SELECT results_eq('count_profiles_deleted_date'::refcursor,ARRAY [1::bigint]);
+SELECT results_eq('count_profiles_deleted_date'::refcursor,ARRAY [2::bigint]);
 CLOSE count_profiles_deleted_date;
 
 select * from finish();

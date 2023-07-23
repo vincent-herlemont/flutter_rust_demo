@@ -27,6 +27,7 @@ struct UpdateReqBody {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct VersionDeployment {
     id: u32,
     version: String,
@@ -88,8 +89,10 @@ impl VersionDeployment {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::file_parallel;
 
     #[tokio::test]
+    #[file_parallel]
     #[cfg(feature = "local_supabase")]
     async fn crud() {
         color_eyre::install().ok();

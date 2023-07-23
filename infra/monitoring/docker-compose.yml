@@ -1,0 +1,61 @@
+version: '3.7'
+
+services:
+  monitoring_loki:
+    image: grafana/loki:2.8.2
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/config.yaml:/mnt/config/config.yaml
+    command: --config.file=/mnt/config/config.yaml
+    depends_on:
+      - hub
+    networks:
+      - local
+  monitoring_loki_proxy:
+    build: ./monitoring/loki_proxy
+    ports:
+      - "3101:3101"
+    environment:
+      - TENANT_ID=${TENANT_ID}
+      - MONITORING_LOKI_HOST_PORT=${MONITORING_LOKI_HOST_PORT}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+    depends_on:
+      - loki
+      - monitoring_proxy_debug
+    networks:
+      - local
+      - supabase_network_infra
+  monitoring_proxy_debug:
+    build: ./monitoring/loki_proxy_debug
+    ports:
+      - "4101:4101"
+    networks:
+      - local
+  monitoring_grafana:
+    image: grafana/grafana:10.0.2
+    ports:
+      - "3000:3000"
+    depends_on:
+      - monitoring_loki
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SMTP_ENABLED=false
+      - GF_SMTP_HOST=smtp.gmail.com:587
+      - GF_SMTP_USER=vincent@herlemont.fr
+      - GF_SMTP_PASSWORD=MY_PASSWORD
+      - GF_SMTP_FROM_ADDRESS=vincent@herlemont.fr
+      - GF_USERS_DEFAULT_THEME=light
+    networks:
+      - local
+      - supabase_network_infra
+
+networks:
+  local:
+    driver: bridge
+  supabase_network_infra:
+    external: true

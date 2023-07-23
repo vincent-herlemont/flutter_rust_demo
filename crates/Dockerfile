@@ -1,4 +1,4 @@
-FROM rust:1.70-bookworm as builder
+FROM rust:1.71-bookworm as builder
 
 ARG CRATE_NAME
 ENV CARGO_TARGET_DIR=/target
@@ -14,6 +14,10 @@ RUN --mount=type=bind,source=.,target=/src \
 
 FROM debian:bookworm-slim
 
+ENV RUST_LIB_BACKTRACE=1
+ENV RUST_BACKTRACE=1
+#ENV RUST_BACKTRACE=full
+
 COPY --from=builder /usr/local/bin/service /usr/local/bin/service
 
-CMD /usr/local/bin/service
+CMD COLORBT_SHOW_HIDDEN=1 /usr/local/bin/service
